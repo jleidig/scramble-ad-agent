@@ -85,7 +85,6 @@ ACCEPTED_VIDEO_FORMATS = [
     "RealMedia",
     "QuickTime",
     "Windows Media",
-    "Matroska",
 ]
 
 
