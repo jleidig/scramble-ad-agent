@@ -20,10 +20,28 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 import logging
 from src.config.channels import channels
+from fastapi.middleware.cors import CORSMiddleware
 _ = load_dotenv()
 
 # Initialize FastAPI app
 app = FastAPI()
+
+origins = [
+    "http://jennymaeleidig.github.io",
+    "https://jennymaeleidig.github.io",
+    "http://localhost",
+    "http://localhost:4200",
+    "https://localhost",
+    "https://localhost:4200"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Configure logging #
 logging.basicConfig(

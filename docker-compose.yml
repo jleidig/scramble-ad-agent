@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  app:
+  x86-ad-agent:
     # Build the image using the Dockerfile in the current directory (.)
     build: .
     # Map port 8080 on the host to port 8080 in the container
