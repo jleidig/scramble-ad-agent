@@ -203,6 +203,7 @@ template = f'''
     If the returned video contains any Not Safe For Work (NSFW) or inappropriate material, you should ignore the video and call `get_random_video` again with the same input parameters.
     Your FINAL ANSWER MUST be the video retrieved by the `get_random_video` tool, formatted STRICTLY as a JSON string.
     Include ONLY the JSON object itself, with no surrounding text or markdown. The JSON object must match the structure of the Video model with fields: `url`, `title`, `uploader`, and `duration`.
+    If you cannot retrieve a video, retry this process up to 3 times. If you cannot retrieve a video after 3 attempts, stop retrying and return an empty JSON object.
 '''
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -243,7 +244,7 @@ async def get_video(query: VideoQuery) -> Video:
             logging.info("Partial JSON parse successful.")
 
 
-        if parsed_json is None: 
+        if not parsed_json: 
             logging.error(f"Failed to parse valid JSON from agent output: {agent_output}") 
             raise ValueError("Agent returned output that could not be parsed as valid JSON.") 
         # Validate and return using the Pydantic model
