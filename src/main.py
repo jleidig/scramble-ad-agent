@@ -11,7 +11,7 @@ from internetarchive import (
 import os
 from langchain_core.tools import tool
 from langchain_core.utils.json import parse_partial_json
-from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI, AzureOpenAI, ChatOpenAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate
 from fastapi import FastAPI, HTTPException
@@ -21,6 +21,7 @@ from pydantic import BaseModel
 import logging
 from src.config.channels import channels
 from fastapi.middleware.cors import CORSMiddleware
+
 _ = load_dotenv()
 
 # Initialize FastAPI app
@@ -32,7 +33,7 @@ origins = [
     "http://localhost",
     "http://localhost:4200",
     "https://localhost",
-    "https://localhost:4200"
+    "https://localhost:4200",
 ]
 
 app.add_middleware(
@@ -99,7 +100,9 @@ def get_random_video(search_term: str = "", collection: str = "") -> Video | Non
 
     If no search term AND no collection is provided, a random video from the VHS commercials collection is returned.
     """
-    logging.info(f"Getting random video with search term: {search_term} and collection: {collection}")
+    logging.info(
+        f"Getting random video with search term: {search_term} and collection: {collection}"
+    )
 
     ia_conf: str = os.path.abspath("./src/config/ia.ini")
 
@@ -110,12 +113,14 @@ def get_random_video(search_term: str = "", collection: str = "") -> Video | Non
     query = "mediatype:movies"
 
     if search_term or collection:
-        if search_term :
+        if search_term:
             query = f"{query} AND ({search_term})"
             logging.info(f"Searching for video with query: '{query}'")
         if collection:
             query = f"{query} AND collection:{collection}"
-            logging.info(f"Searching for video in collection '{collection}' with query: '{query}'")
+            logging.info(
+                f"Searching for video in collection '{collection}' with query: '{query}'"
+            )
     else:
         query = f"{query} AND collection:vhscommercials"
         logging.info(
@@ -156,9 +161,10 @@ def get_random_video(search_term: str = "", collection: str = "") -> Video | Non
                 f"JSON decode error while processing search results on page {random_page}: {e}"
             )
             # Continue to the next attempt
-            continue 
+            continue
     logging.warning("No video found after maximum attempts.")
     return None
+
 
 @tool
 def get_collection_from_chanel(channel: str) -> str | None:
@@ -167,7 +173,7 @@ def get_collection_from_chanel(channel: str) -> str | None:
 
     Args:
      channel (str): The channel to retrieve a collection from.
-    
+
     Returns:
         str: The collection name.
     """
@@ -179,11 +185,32 @@ def get_collection_from_chanel(channel: str) -> str | None:
         return collection
     logging.info(f"No collection found for channel: {channel}")
     return None
-        
+
+
+def get_ailab_bearer_token_provider():
+    from azure.identity import (
+        DefaultAzureCredential,
+        get_bearer_token_provider as _get_bearer_token_provider,
+    )
+
+    token_provider = _get_bearer_token_provider(
+        DefaultAzureCredential(),
+        os.getenv("AZURE_AD_TOKEN_PROVIDER", "api://ailab/Model.Access"),
+    )
+    return token_provider
+
+
 # setup AI agent
-model = ChatOpenAI(model=os.getenv("OPENAI_MODEL", "gpt-4.1-nano-2025-04-14"))
+model = AzureChatOpenAI(
+    model=os.getenv("OPENAI_MODEL", "gpt-4o"),
+    api_version=os.getenv("AZURE_API_VERSION", "2024-10-01-preview"),
+    azure_ad_token_provider=get_ailab_bearer_token_provider(),
+    azure_endpoint=os.getenv(
+        "AZURE_ENDPOINT", "https://ct-enterprisechat-api.azure-api.net/"
+    ),
+)
 tools = [get_random_video, get_collection_from_chanel]
-template = f'''
+template = f"""
     You are an AI agent that can retrieve a random video from Archive.org.
     You have access to two tools: `get_collection_from_chanel` and `get_random_video`.
     The `get_collection_from_chanel` tool retrieves a random collection from a specific channel.
@@ -203,13 +230,9 @@ template = f'''
     Your FINAL ANSWER MUST be the video retrieved by the `get_random_video` tool, formatted STRICTLY as a JSON string.
     Include ONLY the JSON object itself, with no surrounding text or markdown. The JSON object must match the structure of the Video model with fields: `url`, `title`, `uploader`, and `duration`.
     If you cannot retrieve a video, retry this process up to 3 times. If you cannot retrieve a video after 3 attempts, stop retrying and return an empty JSON object.
-'''
+"""
 prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", template),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}")
-    ]
+    [("system", template), ("human", "{input}"), ("placeholder", "{agent_scratchpad}")]
 )
 agent = create_tool_calling_agent(model, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
@@ -225,27 +248,32 @@ async def get_docs():
 async def get_video(query: VideoQuery) -> Video:
     logging.info(f"Received query: {query.query}")
     try:
-        result = agent_executor.invoke({"input": query.query, "channels": (','.join(channels.keys()))})
-        agent_output = result["output"] 
+        result = agent_executor.invoke(
+            {"input": query.query, "channels": (",".join(channels.keys()))}
+        )
+        agent_output = result["output"]
 
-        logging.debug(f"Agent raw result: {agent_output}") 
+        logging.debug(f"Agent raw result: {agent_output}")
 
-        # Attempt to parse the JSON output more robustly 
-        parsed_json = None 
-        try: 
-            # First, try parsing directly (might work if agent returns raw JSON) 
-            parsed_json = json.loads(agent_output) 
+        # Attempt to parse the JSON output more robustly
+        parsed_json = None
+        try:
+            # First, try parsing directly (might work if agent returns raw JSON)
+            parsed_json = json.loads(agent_output)
             logging.info("Direct JSON parse successful.")
-        except json.JSONDecodeError: 
-            logging.debug("Direct JSON parse failed, attempting partial parse.") 
-            # If direct parsing fails, try Langchain's partial parser 
+        except json.JSONDecodeError:
+            logging.debug("Direct JSON parse failed, attempting partial parse.")
+            # If direct parsing fails, try Langchain's partial parser
             parsed_json = parse_partial_json(agent_output)
             logging.info("Partial JSON parse successful.")
 
-
-        if not parsed_json: 
-            logging.error(f"Failed to parse valid JSON from agent output: {agent_output}") 
-            raise ValueError("Agent returned output that could not be parsed as valid JSON.") 
+        if not parsed_json:
+            logging.error(
+                f"Failed to parse valid JSON from agent output: {agent_output}"
+            )
+            raise ValueError(
+                "Agent returned output that could not be parsed as valid JSON."
+            )
         # Validate and return using the Pydantic model
         video = Video(**parsed_json)
         logging.info(f"Returning video: {video}")

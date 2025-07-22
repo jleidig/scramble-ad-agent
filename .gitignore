@@ -209,3 +209,10 @@ __marimo__/
 #config
 src/config/ia.ini
 .tool-versions
+
+#robot testing
+log.html
+output.xml
+report.html
+results/
+~$output.xml

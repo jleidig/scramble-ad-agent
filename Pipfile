@@ -11,6 +11,8 @@ langchain-openai = "*"
 fastapi = "*"
 uvicorn = "*"
 pydantic = "*"
+azure-identity = "*"
+robotframework = "*"
 
 [dev-packages]
 

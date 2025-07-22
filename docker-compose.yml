@@ -16,6 +16,9 @@ services:
       IA_USER: ${IA_USER}
       IA_PASS: ${IA_PASS}
       OPENAI_MODEL: ${OPENAI_MODEL}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-
+      AZURE_API_VERSION: ${AZURE_API_VERSION}
+      AZURE_AD_TOKEN_PROVIDER: ${AZURE_AD_TOKEN_PROVIDER}
+      AZURE_ENDPOINT: ${AZURE_ENDPOINT}
+    volumes:
+      - ~/.azd:/root/.azd
     # Use the default command from the Dockerfile
