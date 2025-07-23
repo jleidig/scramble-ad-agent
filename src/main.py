@@ -28,8 +28,6 @@ _ = load_dotenv()
 app = FastAPI()
 
 origins = [
-    "http://jennymaeleidig.github.io",
-    "https://jennymaeleidig.github.io",
     "http://localhost",
     "http://localhost:4200",
     "https://localhost",
