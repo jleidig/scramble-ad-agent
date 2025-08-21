@@ -6,13 +6,12 @@ name = "pypi"
 [packages]
 langchain = "*"
 python-dotenv = "*"
-internetarchive = "*"
 langchain-openai = "*"
 fastapi = "*"
 uvicorn = "*"
 pydantic = "*"
 azure-identity = "*"
-robotframework = "*"
+playwright = "*"
 
 [dev-packages]
 

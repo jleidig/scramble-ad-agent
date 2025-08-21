@@ -1,5 +1,5 @@
 # Use an official lightweight Python image as a base
-FROM python:3.11.13-slim
+FROM mcr.microsoft.com/playwright/python:v1.54.0-noble
 
 # Set the working directory in the container
 WORKDIR /app
@@ -20,7 +20,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code into the container
 COPY src ./src
-RUN touch ./src/config/ia.ini
 
 # Expose the port the FastAPI application runs on
 EXPOSE 8080

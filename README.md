@@ -1,3 +1,9 @@
+Display Images and Click Through Them.
+
+Example of Custom AI Agent Interaction.
+
+Pair With [scramble-surfer](https://github.com/jleidig/scramble-surfer)
+
 ## Develop
 
 ```bash
@@ -16,10 +22,4 @@ azd auth login --scope api://ailab/Model.Access
 
 ```bash
 docker compose up --build
-```
-
-## Run E2E Tests
-
-```bash
-pipenv run robot src/tests/e2e.robot
 ```

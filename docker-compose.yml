@@ -4,21 +4,12 @@ services:
   x86-ad-agent:
     # Build the image using the Dockerfile in the current directory (.)
     build: .
-    # Map port 8080 on the host to port 8080 in the container
     ports:
       - "8080:8080"
-    # Pass environment variables from the host's .env file to the container
-    # Docker Compose automatically loads variables from the .env file
-    # in the same directory. You can reference them here.
     environment:
-      # Explicitly list the environment variables your application needs
-      # The values will be taken from the .env file loaded by Compose
-      IA_USER: ${IA_USER}
-      IA_PASS: ${IA_PASS}
       OPENAI_MODEL: ${OPENAI_MODEL}
       AZURE_API_VERSION: ${AZURE_API_VERSION}
       AZURE_AD_TOKEN_PROVIDER: ${AZURE_AD_TOKEN_PROVIDER}
       AZURE_ENDPOINT: ${AZURE_ENDPOINT}
     volumes:
       - ~/.azd:/root/.azd
-    # Use the default command from the Dockerfile
